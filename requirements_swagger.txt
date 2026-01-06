@@ -1,0 +1,4 @@
+# Additional requirements for Swagger/OpenAPI import feature
+PyYAML>=6.0
+requests>=2.32.0
+sqlalchemy>=2.0.0
