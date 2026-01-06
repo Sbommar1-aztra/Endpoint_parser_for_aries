@@ -62,7 +62,17 @@ class SwaggerParser:
                 self.version = '3.0'
                 return self._parse_openapi_3_0()
         
-        raise ValueError("Unsupported specification version. Only Swagger 2.0 and OpenAPI 3.0 are supported.")
+        # Check if it's AsyncAPI
+        if 'asyncapi' in self.spec:
+            raise ValueError(
+                "AsyncAPI specification detected. This parser only supports Swagger 2.0 and OpenAPI 3.0 specifications. "
+                "AsyncAPI is a different specification format for asynchronous APIs (Kafka, MQTT, etc.) and is not supported."
+            )
+        
+        raise ValueError(
+            "Unsupported specification version. Only Swagger 2.0 and OpenAPI 3.0 are supported. "
+            "The file must contain either 'swagger: \"2.0\"' or 'openapi: \"3.0\"' at the root level."
+        )
     
     def _parse_swagger_2_0(self) -> Dict[str, Any]:
         """Parse Swagger 2.0 specification"""
