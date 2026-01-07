@@ -1,0 +1,63 @@
+openapi: 3.0.0
+info:
+  title: "Edge Cases Test API"
+  version: "1.0.0"
+  description: "Test file with edge cases that might cause parser issues"
+servers:
+  - url: https://api.example.com/v1
+paths:
+  /test/path:
+    # This path item has non-HTTP method keys that should be skipped
+    parameters:
+      - name: testParam
+        in: query
+        schema:
+          type: string
+    servers:
+      - url: https://test.example.com
+    get:
+      summary: "Test GET endpoint"
+      operationId: testGet
+      tags:
+        - test
+      responses:
+        "200":
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: "Test POST endpoint"
+      operationId: testPost
+      tags:
+        - test
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: "Created"
+  /minimal:
+    get:
+      summary: "Minimal endpoint"
+      responses:
+        "200":
+          description: "OK"
+  /empty:
+    get:
+      operationId: emptyEndpoint
+      responses:
+        "200":
+          description: "Empty response"
+components:
+  schemas:
+    SimpleSchema:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string

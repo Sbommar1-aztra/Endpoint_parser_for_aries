@@ -20,7 +20,8 @@ class SwaggerParser:
     def parse_from_file(self, file_content: str, file_type: str = "json") -> Dict[str, Any]:
         """Parse Swagger/OpenAPI specification from file content"""
         try:
-            if file_type.lower() in ["yaml", "yml"]:
+            # Ensure file_type is not None and is a string before calling .lower()
+            if file_type and isinstance(file_type, str) and file_type.lower() in ["yaml", "yml"]:
                 self.spec = yaml.safe_load(file_content)
             else:
                 self.spec = json.loads(file_content)
@@ -62,7 +63,17 @@ class SwaggerParser:
                 self.version = '3.0'
                 return self._parse_openapi_3_0()
         
-        raise ValueError("Unsupported specification version. Only Swagger 2.0 and OpenAPI 3.0 are supported.")
+        # Check if it's AsyncAPI
+        if 'asyncapi' in self.spec:
+            raise ValueError(
+                "AsyncAPI specification detected. This parser only supports Swagger 2.0 and OpenAPI 3.0 specifications. "
+                "AsyncAPI is a different specification format for asynchronous APIs (Kafka, MQTT, etc.) and is not supported."
+            )
+        
+        raise ValueError(
+            "Unsupported specification version. Only Swagger 2.0 and OpenAPI 3.0 are supported. "
+            "The file must contain either 'swagger: \"2.0\"' or 'openapi: \"3.0\"' at the root level."
+        )
     
     def _parse_swagger_2_0(self) -> Dict[str, Any]:
         """Parse Swagger 2.0 specification"""
@@ -72,7 +83,8 @@ class SwaggerParser:
         
         for path, path_item in paths.items():
             for method, operation in path_item.items():
-                if method.lower() in ['get', 'post', 'put', 'delete', 'patch', 'head', 'options']:
+                # Check if method is a string before calling .lower()
+                if method and isinstance(method, str) and method.lower() in ['get', 'post', 'put', 'delete', 'patch', 'head', 'options']:
                     endpoint_info = self._extract_endpoint_info_swagger_2(
                         path, method.upper(), operation, definitions
                     )
@@ -95,7 +107,8 @@ class SwaggerParser:
         
         for path, path_item in paths.items():
             for method, operation in path_item.items():
-                if method.lower() in ['get', 'post', 'put', 'delete', 'patch', 'head', 'options']:
+                # Check if method is a string before calling .lower()
+                if method and isinstance(method, str) and method.lower() in ['get', 'post', 'put', 'delete', 'patch', 'head', 'options']:
                     endpoint_info = self._extract_endpoint_info_openapi_3(
                         path, method.upper(), operation, schemas
                     )
@@ -132,12 +145,12 @@ class SwaggerParser:
         
         return {
             'method': method,
-            'endpoint': path,
-            'summary': operation.get('summary', ''),
-            'description': operation.get('description', ''),
-            'payload_schema': self._schema_to_text(request_schema) if request_schema else None,
-            'response_schema': self._schema_to_text(response_schemas) if response_schemas else None,
-            'tags': operation.get('tags', [])
+            'endpoint': path or '',
+            'summary': operation.get('summary', '') or '',
+            'description': operation.get('description', '') or '',
+            'payload_schema': self._schema_to_text(request_schema) if request_schema else '',
+            'response_schema': self._schema_to_text(response_schemas) if response_schemas else '',
+            'tags': operation.get('tags', []) or []
         }
     
     def _extract_endpoint_info_openapi_3(
@@ -168,12 +181,12 @@ class SwaggerParser:
         
         return {
             'method': method,
-            'endpoint': path,
-            'summary': operation.get('summary', ''),
-            'description': operation.get('description', ''),
-            'payload_schema': self._schema_to_text(request_schema) if request_schema else None,
-            'response_schema': self._schema_to_text(response_schemas) if response_schemas else None,
-            'tags': operation.get('tags', [])
+            'endpoint': path or '',
+            'summary': operation.get('summary', '') or '',
+            'description': operation.get('description', '') or '',
+            'payload_schema': self._schema_to_text(request_schema) if request_schema else '',
+            'response_schema': self._schema_to_text(response_schemas) if response_schemas else '',
+            'tags': operation.get('tags', []) or []
         }
     
     def _resolve_schema_swagger_2(self, schema: Dict, definitions: Dict) -> Dict:
