@@ -391,15 +391,57 @@ def test_task_8():
         return False
     
     try:
-        # Use the same swagger file but with a minor modification
-        swagger_file = "test/sample_swagger.yaml"
+        # Use a modified swagger file with actual changes
+        swagger_file = "test/sample_swagger_modified.yaml"
         
+        # If modified file doesn't exist, create it from original with changes
         if not os.path.exists(swagger_file):
-            print(f"✗ Test file not found: {swagger_file}")
-            print_result(8, False, "Test file not found")
-            return False
+            original_file = "test/sample_swagger.yaml"
+            if os.path.exists(original_file):
+                # Read original and create modified version
+                with open(original_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                # Make modifications
+                content = content.replace('version: "1.0.0"', 'version: "1.1.0"')
+                content = content.replace('description: "Retrieve a list of all users in the system"', 
+                                         'description: "Retrieve a list of all users in the system - UPDATED"')
+                # Add new endpoint before definitions
+                new_endpoint = '''  /users/{userId}/profile:
+    get:
+      summary: "Get user profile"
+      description: "Retrieve user profile information"
+      tags:
+        - "users"
+      parameters:
+        - name: "userId"
+          in: "path"
+          required: true
+          type: "integer"
+      responses:
+        "200":
+          description: "Profile found"
+          schema:
+            $ref: "#/definitions/User"
+        "404":
+          description: "User not found"
+          schema:
+            $ref: "#/definitions/Error"
+
+'''
+                content = content.replace('\ndefinitions:', new_endpoint + '\ndefinitions:')
+                # Add new field to User definition
+                content = content.replace('      createdAt:\n        type: "string"', 
+                                        '      createdAt:\n        type: "string"\n      phoneNumber:\n        type: "string"\n        description: "User phone number"')
+                with open(swagger_file, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                print(f"✓ Created modified swagger file for testing")
+            else:
+                print(f"✗ Original test file not found: {original_file}")
+                print_result(8, False, "Test file not found")
+                return False
         
         print(f"Detecting changes for specification ID: {test_state['spec_id']}")
+        print(f"Using modified file: {swagger_file}")
         
         with open(swagger_file, 'rb') as f:
             files = {'file': (os.path.basename(swagger_file), f, 'application/x-yaml')}
@@ -421,8 +463,21 @@ def test_task_8():
             print(f"  Removed Endpoints: {len(data.get('removed_endpoints', []))}")
             print(f"  Modified Endpoints: {len(data.get('modified_endpoints', []))}")
             
-            print_result(8, True, "Change detection completed successfully")
-            return True
+            # Check if we detected at least one change
+            total_changes = (
+                len(data.get('breaking_changes', [])) +
+                len(data.get('non_breaking_changes', [])) +
+                len(data.get('added_endpoints', [])) +
+                len(data.get('removed_endpoints', [])) +
+                len(data.get('modified_endpoints', []))
+            )
+            
+            if total_changes > 0:
+                print_result(8, True, f"Change detection successful - detected {total_changes} change(s)")
+                return True
+            else:
+                print_result(8, False, "Change detection completed but no changes detected")
+                return False
         else:
             error_msg = response.text
             print(f"✗ Error: {error_msg}")
